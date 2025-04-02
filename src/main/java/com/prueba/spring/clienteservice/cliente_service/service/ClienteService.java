@@ -5,19 +5,22 @@ import com.prueba.spring.clienteservice.cliente_service.entity.Cliente;
 import com.prueba.spring.clienteservice.cliente_service.entity.Persona;
 import com.prueba.spring.clienteservice.cliente_service.exception.ResourceNotFoundException;
 import com.prueba.spring.clienteservice.cliente_service.repository.ClienteRepository;
-import com.prueba.spring.clienteservice.cliente_service.repository.PersonaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class ClienteService {
-    @Autowired
-    private ClienteRepository clienteRepository;
 
-    @Autowired
-    private PersonaRepository personaRepository;
+    private final ClienteRepository clienteRepository;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     public Cliente crearCliente(ClienteDTO dto) {
         Persona persona = new Persona();
@@ -33,7 +36,13 @@ public class ClienteService {
         cliente.setContrasena(dto.getContrasena());
         cliente.setPersona(persona);
 
-        return clienteRepository.save(cliente);
+        Cliente clienteGuardado = clienteRepository.save(cliente);
+
+        // 🔥 Enviar evento Kafka para que el microservicio de cuenta cree la cuenta
+        kafkaTemplate.send("cliente-creado", String.valueOf(clienteGuardado.getId()));
+        log.info("Se creó cliente y se publicó evento Kafka para cuenta: ID={}", clienteGuardado.getClienteid());
+
+        return clienteGuardado;
     }
 
     public List<Cliente> obtenerTodos() {
