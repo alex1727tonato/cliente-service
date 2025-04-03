@@ -38,9 +38,8 @@ public class ClienteService {
 
         Cliente clienteGuardado = clienteRepository.save(cliente);
 
-        // 🔥 Enviar evento Kafka para que el microservicio de cuenta cree la cuenta
         kafkaTemplate.send("cliente-creado", String.valueOf(clienteGuardado.getId()));
-        log.info("Se creó cliente y se publicó evento Kafka para cuenta: ID={}", clienteGuardado.getClienteid());
+        log.info("Se creó cliente y se publicó evento Kafka para crear la cuenta: ID={}", clienteGuardado.getId());
 
         return clienteGuardado;
     }
